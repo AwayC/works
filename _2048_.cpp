@@ -391,7 +391,7 @@ void game_init() {
 int main()
 {
 	srand((unsigned int)time(NULL));
-	initgraph(400, 430, EX_SHOWCONSOLE);
+	initgraph(400, 430);
 	BeginBatchDraw();
 	game_init();
 	int timer = 1;
