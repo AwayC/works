@@ -6,7 +6,8 @@
 #include <vector>
 
 #define WIDE  100
-
+#define PACE 10
+#define MG_TIME 5
 bool runtime = 1;
 enum {
 	LEFT = 1, UP, DOWN, RIGHT
@@ -55,8 +56,9 @@ public:
 	int num, score;
 	std::vector<block> arr;
 	std::vector<int> buff;
-	int status;
-	int pace;
+	std::vector<block> mg;
+	int status, firstmove;
+	int pace, mg_cnt;
 	Blocks() {
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++)
@@ -65,6 +67,7 @@ public:
 		}
 		score = 0;
 		num = 0;
+		firstmove = 1;
 	}
 
 	void create_block() {
@@ -72,6 +75,7 @@ public:
 			std::cout << "block fill" << std::endl;
 			return;
 		}
+		std::cout << "create " << std::endl;
 		srand((unsigned int)time(NULL));
 		int p = 0, tmp = rand() % (16 - num);
 		while (blocks[p / 4][p % 4].point) p++;
@@ -85,6 +89,7 @@ public:
 		blocks[p / 4][p % 4].set(p / 4 * WIDE, p % 4 *WIDE);
 		num++;
 		arr.push_back(blocks[p / 4][p % 4]);
+		//mg.push_back(blocks[p / 4][p % 4]);
 	}
 
 	void init(int N) {
@@ -95,10 +100,13 @@ public:
 		arr.clear();
 		buff.clear();
 		num = 0;
+		mg_cnt = 6;
+		firstmove = 1;
 #if 1
 		for (int i = 0; i < N; i++)
 			create_block();
 #endif
+		mg.clear();
 		for (int j = 0; j < 4; j++) {
 			for (int i = 0; i < 4; i++)
 				std::cout << blocks[i][j].point << ' ';
@@ -132,9 +140,18 @@ public:
 			settextcolor(RGB(255, 255, 255));
 			fillrectangle(it.rx, it.ry, it.rx + WIDE, it.ry + WIDE);
 			drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-			outtextxy(0, 405, L"score : ");
-			outtextxy(55, 405, trans(score));
 		}
+		for (auto it : mg) {
+			std::cout << "MG " << " "<< mg_cnt<< " " << it.rx << ' ' << it.ry << ' ' << mg.size() << std::endl;
+			setfillcolor(RGB(block_color[it.point + 1][0], block_color[it.point + 1][1], block_color[it.point + 1][2]));
+			RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE };
+			//RECT r = { 0, 0, 400, 400};
+			settextcolor(RGB(255, 255, 255));
+			fillrectangle(it.rx + (5 - mg_cnt) * WIDE / 10 , it.ry + (5 - mg_cnt) * WIDE / 10, it.rx - (5 - mg_cnt) * WIDE / 10 + WIDE, it.ry -  (5 - mg_cnt) * WIDE / 10 + WIDE);
+			drawtext(strnum[it.point + 1], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		}
+		outtextxy(0, 405, L"score : ");
+		outtextxy(55, 405, trans(score));
 	}
 	int check(int x,int  y, int dir) {
 		block* b = &blocks[x][y];
@@ -162,11 +179,18 @@ public:
 	}
 
 	int move() {
+		int cnt = 0;
+		std::cout << "MG_CNT " << mg_cnt << std::endl;
+		std::cout << "PACE" << pace << std::endl;
+		if (mg_cnt < MG_TIME) {
+			std::cout << "MG++" << std::endl;
+			mg_cnt++;
+		}
+		else  mg.clear(), mg_cnt = MG_TIME + 1;
 		if (pace == 0) {
-			int cnt = 0;
 			arr.clear();
 			buff.clear();
-			pace += 10;
+			pace += PACE;
 			switch (status) {
 				default:
 					break;
@@ -202,35 +226,39 @@ public:
 								arr.push_back(blocks[i][j]);
 							}
 					break;
+					if (cnt == 0) pace = 0;
 			}
-			if (cnt == 0) pace = 0;
-			return cnt;
+		//	firstmove = 0;
 		}
 		else if(pace < 100){
-			pace += 10;
+			std::cout << "PACE ++" << std::endl;
+			pace += PACE;
 			for (int it : buff){
 				block* b = &arr[it];
-				b->rx = b->rx + de[status][0] * 10;
-				b->ry = b->ry + de[status][1] * 10;
+				b->rx = b->rx + de[status][0] * PACE;
+				b->ry = b->ry + de[status][1] * PACE;
 			}
 			return buff.size();
 		}
 		else if(pace == 100){
-			pace = 0;
 			merge();
+			mg_cnt = 0;
 		}
+
+		return cnt || (mg_cnt <= MG_TIME);
 	}
 	void merge() {
+		mg.clear();
 		for (int it : buff) {
-			mergeblock(&arr[it]);
+			mergeblock(&arr[it], it);
 		}
-		arr.clear();
+		buff.clear();
+		
 		for (int j = 0; j < 4; j++) {
 			for (int i = 0; i < 4; i++) {
 				blocks[i][j].set(i * 100, j * 100);
 				blocks[i][j].flag = 0;
-				if (blocks[i][j].point)
-					arr.push_back(blocks[i][j]);
+
 				std::cout << blocks[i][j].point << ' ';
 			}
 			std::cout << std::endl;
@@ -238,15 +266,19 @@ public:
 		std::cout << std::endl;
 	}
 
-	void mergeblock(block* b) {
+	void mergeblock(block* b, int id) {
 		int x1 = b->rx / WIDE, y1 = b->ry / WIDE;
 		int x = x1 - de[status][0], y = y1 - de[status][1];
 		if (check(x, y, status) == SAME) {
 			blocks[x1][y1].point++, blocks[x][y].point = 0, blocks[x1][y1].st = 1, num--;
 			score += (1 << (b->point + 1));
+			mg.push_back(*b);
+			//b->rx = x1, b->ry = y1;
 		}
-		else 
-			blocks[x1][y1].point = b->point,  blocks[x][y].point = 0;
+		else {
+			blocks[x1][y1].point = b->point, blocks[x][y].point = 0;
+		//	b->rx = x1, b->ry = y1;
+		}
 		std::cout << num << std::endl;
 	}
 
@@ -300,11 +332,14 @@ bool logic() {
 	}
 	if (Blks.status) {
 		if (!Blks.move()) {
-			Blks.status = 0;
+			Blks.firstmove = 1;
+			Blks.mg.clear();
 			int ret = rand() % 2 + 1;
-			while(ret --)
+			while (ret--) 
 				Blks.create_block();
 			Blks.arr.clear();
+			Blks.status = 0;
+			Blks.mg_cnt = 6;
 			for (int j = 0; j < 4; j++) {
 				for (int i = 0; i < 4; i++) {
 					Blks.blocks[i][j].st = 0;
@@ -338,12 +373,14 @@ int main()
 	initgraph(400, 430, EX_SHOWCONSOLE);
 	BeginBatchDraw();
 	game_init();
+	int timer;
+	std::cin >> timer;
 	while (runtime)
 	{
 		int ret = logic();
 		render();
 		FlushBatchDraw();
-		Sleep(10);
+		Sleep(timer);
 		if (ret) break;
 	}
 	Sleep(5000);
