@@ -37,11 +37,11 @@ int de[5][2] = {0, 0, -1, 0, 0, -1, 0, 1, 1, 0 };
 class block{
 public:
 	int point;
-	int rx, ry, flag;
+	int rx, ry, flag, st;
 	block() {
 		point = 0;
 		rx = 0, ry = 0;
-		flag = 0;
+		flag = 0, st = 0;
 		std::cout << "create a block\n";
 	}
 	void set(int x, int y) {
@@ -52,7 +52,7 @@ public:
 class Blocks {
 public:
 	block blocks[4][4];
-	int num;
+	int num, score;
 	std::vector<block> arr;
 	std::vector<int> buff;
 	int status;
@@ -63,6 +63,7 @@ public:
 				blocks[i][j].point = 0;
 			arr.clear();
 		}
+		score = 0;
 		num = 0;
 	}
 
@@ -107,7 +108,20 @@ public:
 		status = 0;
 		std::cout << "Init finished" << std::endl;
 	}
-
+	wchar_t* trans(int n) {
+		int len = 0;
+		wchar_t s[8];
+		if (n == 0) {
+			s[0] = '0';
+			return s;
+		}
+		while (n) {
+			s[len++] = n % 10 + '0';
+			n /= 10;
+		}
+		for (int i = 0; i < len / 2; i++) s[i] = s[len - 1 - i];
+		return s;
+	}
 	void render()
 	{
 		for (auto it : arr) {
@@ -118,7 +132,8 @@ public:
 			settextcolor(RGB(255, 255, 255));
 			fillrectangle(it.rx, it.ry, it.rx + WIDE, it.ry + WIDE);
 			drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-			//outtextxy(it.rx, it.ry, (strnum[it.point]));
+			outtextxy(0, 405, L"score : ");
+			outtextxy(55, 405, trans(score));
 		}
 	}
 	int check(int x,int  y, int dir) {
@@ -130,7 +145,7 @@ public:
 		block* b1 = &blocks[tmpx][tmpy];
 		if (b1->point == 0) return BLANK;
 		if (b1->flag) return BLANK;		
-		if (b1->point == b->point) return SAME;
+		if (b1->point == b->point && b->st == 0 && b1->st == 0) return SAME;
 		return 0;
 	}
 	int moveblock(int x, int y, int dir) {
@@ -226,8 +241,10 @@ public:
 	void mergeblock(block* b) {
 		int x1 = b->rx / WIDE, y1 = b->ry / WIDE;
 		int x = x1 - de[status][0], y = y1 - de[status][1];
-		if (check(x, y, status) == SAME)
-			blocks[x1][y1].point++, blocks[x][y].point = 0, num--;
+		if (check(x, y, status) == SAME) {
+			blocks[x1][y1].point++, blocks[x][y].point = 0, blocks[x1][y1].st = 1, num--;
+			score += (1 << (b->point + 1));
+		}
 		else 
 			blocks[x1][y1].point = b->point,  blocks[x][y].point = 0;
 		std::cout << num << std::endl;
@@ -290,6 +307,7 @@ bool logic() {
 			Blks.arr.clear();
 			for (int j = 0; j < 4; j++) {
 				for (int i = 0; i < 4; i++) {
+					Blks.blocks[i][j].st = 0;
 					Blks.blocks[i][j].set(i * 100, j * 100);
 					if (Blks.blocks[i][j].point)
 						Blks.arr.push_back(Blks.blocks[i][j]);
@@ -317,7 +335,7 @@ void game_init() {
 int main()
 {
 	srand((unsigned int)time(NULL));
-	initgraph(400, 400, EX_SHOWCONSOLE);
+	initgraph(400, 430, EX_SHOWCONSOLE);
 	BeginBatchDraw();
 	game_init();
 	while (runtime)
@@ -328,7 +346,7 @@ int main()
 		Sleep(10);
 		if (ret) break;
 	}
-	Sleep(1000);
+	Sleep(5000);
 	EndBatchDraw();
 	closegraph();
 	return 0;
