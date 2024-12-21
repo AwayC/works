@@ -359,7 +359,7 @@ void render() {
 
 void game_init() {
 	Blks.init(2);
-	setbkcolor(RGB(255, 255, 255));
+	setbkcolor(RGB(192, 192, 192));
 }
 
 int test()
