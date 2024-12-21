@@ -43,7 +43,6 @@ public:
 		point = 0;
 		rx = 0, ry = 0;
 		flag = 0, st = 0;
-		std::cout << "create a block\n";
 	}
 	void set(int x, int y) {
 		rx = x, ry = y;
@@ -75,7 +74,6 @@ public:
 			std::cout << "block fill" << std::endl;
 			return;
 		}
-		std::cout << "create " << std::endl;
 		srand((unsigned int)time(NULL));
 		int p = 0, tmp = rand() % (16 - num);
 		while (blocks[p / 4][p % 4].point) p++;
@@ -107,11 +105,6 @@ public:
 			create_block();
 #endif
 		mg.clear();
-		/*for (int j = 0; j < 4; j++) {
-			for (int i = 0; i < 4; i++)
-				std::cout << blocks[i][j].point << ' ';
-			std::cout << std::endl;
-		}*/
 		pace = 0;
 		status = 0;
 		std::cout << "Init finished" << std::endl;
@@ -135,23 +128,22 @@ public:
 	void render()
 	{
 		for (auto it : arr) {
-			//std::cout << it.rx << ' ' << it.ry << std::endl;
 			setfillcolor(RGB(     block_color[it.point][0],     block_color[it.point][1],    block_color[it.point][2]  ));
 			RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE};
-			//RECT r = { 0, 0, 400, 400};
+			setbkmode(TRANSPARENT);
 			settextcolor(RGB(255, 255, 255));
 			fillrectangle(it.rx, it.ry, it.rx + WIDE, it.ry + WIDE);
 			drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		}
 		for (auto it : mg) {
-			//std::cout << "MG " << " "<< mg_cnt<< " " << it.rx << ' ' << it.ry << ' ' << mg.size() << std::endl;
 			setfillcolor(RGB(block_color[it.point][0], block_color[it.point][1], block_color[it.point][2]));
 			RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE };
-			//RECT r = { 0, 0, 400, 400};
+			setbkmode(TRANSPARENT);
 			settextcolor(RGB(255, 255, 255));
 			fillrectangle(it.rx + (5 - mg_cnt) * WIDE / 10 , it.ry + (5 - mg_cnt) * WIDE / 10, it.rx - (5 - mg_cnt) * WIDE / 10 + WIDE, it.ry -  (5 - mg_cnt) * WIDE / 10 + WIDE);
 			drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		}
+		settextcolor(RGB(0, 0, 0));
 		outtextxy(0, 405, L"score : ");
 		outtextxy(55, 405, trans(score));
 	}
@@ -169,7 +161,6 @@ public:
 	}
 	int moveblock(int x, int y, int dir) {
 		if (check(x, y, dir)) {
-			//std::cout << " move " << " "<<x  << " " << y << " pace " << pace<<  std::endl;
 			block* b = &blocks[x][y];
 			b->flag = 1;
 			b->rx = x * WIDE + de[dir][0] * pace;
@@ -182,10 +173,7 @@ public:
 
 	int move() {
 		int cnt = 0;
-		/*std::cout << "MG_CNT " << mg_cnt << std::endl;
-		std::cout << "PACE" << pace << std::endl;*/
 		if (mg_cnt < MG_TIME) {
-			//std::cout << "MG++" << std::endl;
 			mg_cnt++;
 		}
 		else  mg.clear(), mg_cnt = MG_TIME + 1;
@@ -230,7 +218,6 @@ public:
 							}
 					break;
 			}
-		//	firstmove = 0;
 			if (cnt == 0) {
 				pace = 0;
 				move_stop = 1;
@@ -242,7 +229,6 @@ public:
 			}
 		}
 		else if(pace < 100){
-			//std::cout << "PACE ++" << std::endl;
 			pace += PACE;
 			for (int it : buff){
 				block* b = &arr[it];
@@ -269,12 +255,8 @@ public:
 			for (int i = 0; i < 4; i++) {
 				blocks[i][j].set(i * 100, j * 100);
 				blocks[i][j].flag = 0;
-
-			//	std::cout << blocks[i][j].point << ' ';
 			}
-			//std::cout << std::endl;
 		}
-		//std::cout << std::endl;
 		pace = 0;
 	}
 
@@ -288,13 +270,10 @@ public:
 			b1.set(b->rx, b->ry);
 			b1.point = b->point + 1;
 			mg.push_back(b1);
-			//b->rx = x1, b->ry = y1;
 		}
 		else {
 			blocks[x1][y1].point = b->point, blocks[x][y].point = 0;
-		//	b->rx = x1, b->ry = y1;
 		}
-		std::cout << num << std::endl;
 	}
 
 	bool checkout() {
@@ -302,12 +281,14 @@ public:
 		int ret = 0;
 		for (int k = 1; k <= 4; k ++) {
 			for (int j = 0; j < 4; j++ ){
-				for (int i = 0; i < 4; i++)
-					ret += check(i, j, k);
+				for (int i = 0; i < 4; i++) {
+					int res = check(i, j, k);
+						ret += res;
+				}
 			}
 		}
 		if (ret == 0) out_cnt--;
-		if(out_cnt == 0) return 1;
+		if(out_cnt == 0 && ret == 0) return 1;
 		return 0;
 	}
 
@@ -315,42 +296,34 @@ public:
 
 ExMessage msg;
 int logic() {
-
 	ExMessage msg;
 	if (Blks.status) flushmessage();
 	while (peekmessage(&msg, -1, 1)) {
 		flushmessage();
 		if (msg.message == WM_KEYDOWN) {
 			int dir = -1;
-			std::cout << dir << std::endl;
 			switch (msg.vkcode) {
 			case VK_LEFT : 
 				dir = LEFT;
-				std::cout << "left" << std::endl;
 				break;
 			case VK_UP : 
 				dir = UP;
-				std::cout << "up" << std::endl;
 				break;
 			case VK_DOWN: 
 				dir = DOWN;
-				std::cout << "down" << std::endl;
 				break;
 			case VK_RIGHT:
 				dir = RIGHT;
-				std::cout << "right" << std::endl;
 				break;
 			default :
 				break;
 			}
-			//std::cout <<"dir "<< dir << std::endl;
 			if (~dir) Blks.status = dir;
 		}
 	}
 	int move_stop = 0;
 	if (Blks.status) {
 		if (!Blks.move()) {
-			std::cout << Blks.score << ' '<< Blks.trans(Blks.score) << std::endl;
 			move_stop = 1;
 			Blks.move_stop = 0;
 			Blks.firstmove = 1;
@@ -365,13 +338,14 @@ int logic() {
 					Blks.blocks[i][j].set(i * 100, j * 100);
 					if (Blks.blocks[i][j].point)
 						Blks.arr.push_back(Blks.blocks[i][j]);
-					//std::cout << Blks.blocks[i][j].point << ' ';
+					std::cout << Blks.blocks[i][j].point << ' ';
 				}
-				//std::cout << std::endl;
+				std::cout << std::endl;
 			}
-			//std::cout << std::endl;
+			std::cout << std::endl;
+			if (Blks.num == 16 && Blks.checkout()) return 2;
 		}
-		if (Blks.num == 16 && Blks.checkout()) return 2;
+		
 	}
 	
 	if (move_stop) return 0;
@@ -384,12 +358,35 @@ void render() {
 }
 
 void game_init() {
-	//setbkcolor(RGB(255, 255, 255));
 	Blks.init(2);
+	setbkcolor(RGB(255, 255, 255));
+}
+
+int test()
+{
+	int ret = 0, res = 0;
+	for (int k = 1; k <= 4; k++) {
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				ret = Blks.check(i, j, k);
+				if (ret) {
+					res += ret;
+					std::cout << i << ' ' << j << ' ' << k << std::endl;
+				}
+			}
+		}
+	}
+	return res;
 }
 
 int main()
 {
+#if 0
+	test();
+#endif
+#if 1
 	srand((unsigned int)time(NULL));
 	initgraph(400, 430);
 	BeginBatchDraw();
@@ -410,13 +407,15 @@ int main()
 	outtextxy(200, 405, L"Game Over");
 	for (int j = 0; j < 4; j++) {
 		for (int i = 0; i < 4; i++) {
-			std::cout << Blks.blocks[i][j].point << ' ';
+			std::cout << Blks.blocks[i][j].point << ',';
 		}
 		std::cout << std::endl;
 	}
 	std::cout << std::endl;
+	std::cout << test();
 	Sleep(5000);
 	EndBatchDraw();
 	closegraph();
+#endif
 	return 0;
 }
