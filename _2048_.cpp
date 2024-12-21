@@ -391,7 +391,7 @@ int main()
 	initgraph(400, 430);
 	BeginBatchDraw();
 	game_init();
-	int timer = 1;
+	int timer = 2;
 	//std::cin >> timer;
 	while (runtime)
 	{
@@ -404,7 +404,10 @@ int main()
 	while (Blks.mg_cnt < MG_TIME) {
 		Blks.mg_cnt++; render(); FlushBatchDraw(); Sleep(timer);
 	}	
+	FlushBatchDraw();
+	settextcolor(RGB(0, 0, 0));
 	outtextxy(200, 405, L"Game Over");
+	FlushBatchDraw();
 	for (int j = 0; j < 4; j++) {
 		for (int i = 0; i < 4; i++) {
 			std::cout << Blks.blocks[i][j].point << ',';
