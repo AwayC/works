@@ -4,10 +4,13 @@
 #include <time.h>
 #include <stdlib.h>
 #include <vector>
+#include <conio.h>
+#pragma comment( lib, "MSIMG32.LIB")
 
 #define WIDE  100
 #define PACE 10
 #define MG_TIME 5
+#define TRANSRGB 0xffc4c4
 bool runtime = 1;
 enum {
 	LEFT = 1, UP, DOWN, RIGHT
@@ -35,6 +38,18 @@ int block_color[16][3] = {
 };
 wchar_t strnum[16][5] = {L"0", L"2", L"4", L"8", L"16" , L"32",L"64" , L"128" , L"256", L"512", L"1024", L"2048", L"4096", L"8192", L"14", L"15"};
 int de[5][2] = {0, 0, -1, 0, 0, -1, 0, 1, 1, 0 };
+
+void transparentimage(IMAGE* dstimg, int x, int y, IMAGE* srcimg) //ÐÂ°æpng
+{
+	HDC dstDC = GetImageHDC(dstimg);
+	HDC srcDC = GetImageHDC(srcimg);
+	int w = srcimg->getwidth();
+	int h = srcimg->getheight();
+	BLENDFUNCTION bf = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+	AlphaBlend(dstDC, x, y, w, h, srcDC, 0, 0, w, h, bf);
+}
+
+
 class block{
 public:
 	int point;
@@ -109,43 +124,47 @@ public:
 		status = 0;
 		std::cout << "Init finished" << std::endl;
 	}
-	wchar_t* trans(int n) {
+	std::string trans(int n) {
 		int len = 0;
-		wchar_t s[9];
-		if (n == 0) {
-			s[0] = '0';
-			return s;
-		}
+		std::string s;
 		while (n) {
-			s[len++] = n % 10 + '0';
+			s = char(n % 10 + '0') + s;
 			n /= 10;
 		}
-		wchar_t tmp;
-		for (int i = 0; i <= (len - 1) / 2; i++) { tmp = s[i], s[i] = s[len - 1 - i], s[len - 1 - i] = tmp; };
-		s[len] = '\0';
 		return s;
 	}
 	void render()
 	{
 		for (auto it : arr) {
-			setfillcolor(RGB(     block_color[it.point][0],     block_color[it.point][1],    block_color[it.point][2]  ));
-			RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE};
-			setbkmode(TRANSPARENT);
-			settextcolor(RGB(255, 255, 255));
-			fillrectangle(it.rx, it.ry, it.rx + WIDE, it.ry + WIDE);
-			drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			//setfillcolor(RGB(     block_color[it.point][0],     block_color[it.point][1],    block_color[it.point][2]  ));
+			//RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE};
+			//fillrectangle(it.rx, it.ry, it.rx + WIDE, it.ry + WIDE);
+			//setbkmode(TRANSPARENT);
+			//settextcolor(RGB(255, 255, 255));
+			//drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			std::string path = ".//images//";
+			path = path + char(it.point + '0') + ".png";
+		//	std::cout << path << std::endl;
+			IMAGE img;
+			loadimage(&img, path.c_str(), WIDE, WIDE);
+			transparentimage(NULL, it.rx, it.ry, &img);
 		}
 		for (auto it : mg) {
-			setfillcolor(RGB(block_color[it.point][0], block_color[it.point][1], block_color[it.point][2]));
+			std::string path = ".//images//";
+			path = path + char(it.point + '0') + ".png";
+			IMAGE img;
+			loadimage(&img, path.c_str(), mg_cnt * WIDE / 5, mg_cnt * WIDE / 5);
+			transparentimage(NULL, it.rx + (5 - mg_cnt) * WIDE / 10, it.ry + (5 - mg_cnt) * WIDE / 10, &img);
+			/*setfillcolor(RGB(block_color[it.point][0], block_color[it.point][1], block_color[it.point][2]));
 			RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE };
 			setbkmode(TRANSPARENT);
 			settextcolor(RGB(255, 255, 255));
-			fillrectangle(it.rx + (5 - mg_cnt) * WIDE / 10 , it.ry + (5 - mg_cnt) * WIDE / 10, it.rx - (5 - mg_cnt) * WIDE / 10 + WIDE, it.ry -  (5 - mg_cnt) * WIDE / 10 + WIDE);
-			drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			fillrectangle(it.rx + (5 - mg_cnt) * WIDE / 10 , it.ry + (5 - mg_cnt) * WIDE / 10, it.rx - (5 - mg_cnt) * WIDE / 10 + WIDE, it.ry -  (5 - mg_cnt) * WIDE / 10 + WIDE);*/
+			//drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		}
 		settextcolor(RGB(0, 0, 0));
-		outtextxy(0, 405, L"score : ");
-		outtextxy(55, 405, trans(score));
+		outtextxy(0, 405, "score : ");
+		outtextxy(55, 405, trans(score).c_str());
 	}
 	int check(int x,int  y, int dir) {
 		block* b = &blocks[x][y];
@@ -387,11 +406,12 @@ int main()
 	test();
 #endif
 #if 1
+
 	srand((unsigned int)time(NULL));
 	initgraph(400, 430);
 	BeginBatchDraw();
 	game_init();
-	int timer = 2;
+	int timer = 1;
 	//std::cin >> timer;
 	while (runtime)
 	{
@@ -406,7 +426,7 @@ int main()
 	}	
 	FlushBatchDraw();
 	settextcolor(RGB(0, 0, 0));
-	outtextxy(200, 405, L"Game Over");
+	outtextxy(200, 405, "Game Over");
 	FlushBatchDraw();
 	for (int j = 0; j < 4; j++) {
 		for (int i = 0; i < 4; i++) {
@@ -419,6 +439,19 @@ int main()
 	Sleep(5000);
 	EndBatchDraw();
 	closegraph();
+#endif	
+#if 0
+	initgraph(1000, 1000);
+	setbkcolor(RED);
+	cleardevice();
+	IMAGE img;
+	std::string a= ".//images//1.png";
+	loadimage(&img, a.c_str(), 100, 100);
+
+	putimage(100, 100, &img);
+	transparentimage(NULL, 100, 0, &img);
+
+	_getch();
 #endif
 	return 0;
 }
