@@ -37,6 +37,7 @@ int block_color[16][3] = {
 	50, 50, 100,
 };
 wchar_t strnum[16][5] = {L"0", L"2", L"4", L"8", L"16" , L"32",L"64" , L"128" , L"256", L"512", L"1024", L"2048", L"4096", L"8192", L"14", L"15"};
+IMAGE img[14];
 int de[5][2] = {0, 0, -1, 0, 0, -1, 0, 1, 1, 0 };
 
 void transparentimage(IMAGE* dstimg, int x, int y, IMAGE* srcimg) //ÐÂ°æpng
@@ -84,7 +85,7 @@ public:
 		firstmove = 1;
 	}
 
-	void create_block() {
+	void create_block(int flag) {
 		if (num >= 16) {
 			std::cout << "block fill" << std::endl;
 			return;
@@ -98,11 +99,13 @@ public:
 			while (blocks[p / 4][p % 4].point) p++;
 		}
 		
-		blocks[p / 4][p % 4].point = 1;
+		if(flag)blocks[p / 4][p % 4].point = 1;
 		blocks[p / 4][p % 4].set(p / 4 * WIDE, p % 4 *WIDE);
 		num++;
 		arr.push_back(blocks[p / 4][p % 4]);
-		mg.push_back(blocks[p / 4][p % 4]);
+		block b = blocks[p / 4][p % 4];
+	//	b.add = rand() % 2;
+		mg.push_back(b);
 	}
 
 	void init(int N) {
@@ -117,7 +120,7 @@ public:
 		firstmove = 1;
 #if 1
 		for (int i = 0; i < N; i++)
-			create_block();
+			create_block(1);
 #endif
 		mg.clear();
 		pace = 0;
@@ -136,31 +139,17 @@ public:
 	void render()
 	{
 		for (auto it : arr) {
-			//setfillcolor(RGB(     block_color[it.point][0],     block_color[it.point][1],    block_color[it.point][2]  ));
-			//RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE};
-			//fillrectangle(it.rx, it.ry, it.rx + WIDE, it.ry + WIDE);
-			//setbkmode(TRANSPARENT);
-			//settextcolor(RGB(255, 255, 255));
-			//drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-			std::string path = ".//images//";
-			path = path + char(it.point + '0') + ".png";
-		//	std::cout << path << std::endl;
-			IMAGE img;
-			loadimage(&img, path.c_str(), WIDE, WIDE);
-			transparentimage(NULL, it.rx, it.ry, &img);
+			if(it.point)
+			transparentimage(NULL, it.rx, it.ry, &img[it.point]);
 		}
 		for (auto it : mg) {
 			std::string path = ".//images//";
-			path = path + char(it.point + '0') + ".png";
-			IMAGE img;
-			loadimage(&img, path.c_str(), mg_cnt * WIDE / 5, mg_cnt * WIDE / 5);
-			transparentimage(NULL, it.rx + (5 - mg_cnt) * WIDE / 10, it.ry + (5 - mg_cnt) * WIDE / 10, &img);
-			/*setfillcolor(RGB(block_color[it.point][0], block_color[it.point][1], block_color[it.point][2]));
-			RECT r = { it.rx, it.ry, it.rx + WIDE, it.ry + WIDE };
-			setbkmode(TRANSPARENT);
-			settextcolor(RGB(255, 255, 255));
-			fillrectangle(it.rx + (5 - mg_cnt) * WIDE / 10 , it.ry + (5 - mg_cnt) * WIDE / 10, it.rx - (5 - mg_cnt) * WIDE / 10 + WIDE, it.ry -  (5 - mg_cnt) * WIDE / 10 + WIDE);*/
-			//drawtext(strnum[it.point], &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			path = path + trans(it.point + 1) + ".png";
+			//std::cout << path << std::endl;
+			IMAGE img1;
+			loadimage(&img1, path.c_str(), (mg_cnt + 1) * WIDE / 5, (mg_cnt + 1) * WIDE / 5);
+			transparentimage(NULL, it.rx + (5 - mg_cnt - 1) * WIDE / 10, it.ry + (5 - mg_cnt - 1) * WIDE / 10, &img1);
+			//std::cout <<"mg "<< mg_cnt * WIDE / 5 <<"  " << it.rx + (5 - mg_cnt) * WIDE / 10 << "   "<< it.ry + (5 - mg_cnt) * WIDE / 10 << std::endl;
 		}
 		settextcolor(RGB(0, 0, 0));
 		outtextxy(0, 405, "score : ");
@@ -195,7 +184,18 @@ public:
 		if (mg_cnt < MG_TIME) {
 			mg_cnt++;
 		}
-		else  mg.clear(), mg_cnt = MG_TIME + 1;
+		else if (mg_cnt == MG_TIME) {
+			for (auto it : mg) {
+				blocks[it.rx / 100][it.ry / 100].point++;
+				for (size_t i = 0; i <= arr.size(); i++) {
+					if (arr[i].ry == it.ry && arr[i].rx == it.rx) {
+						arr[i].point++;
+					}
+				}
+			}
+			mg.clear();
+			mg_cnt++;
+		}
 		if (move_stop) return mg_cnt <= MG_TIME;
 		if (pace == 0) {
 			arr.clear();
@@ -241,9 +241,7 @@ public:
 				pace = 0;
 				move_stop = 1;
 				if (mg_cnt == 1) {
-					int ret = rand() % 2 + 1;
-					while (ret--)
-						create_block();
+					create_block(0);
 				}
 			}
 		}
@@ -283,12 +281,13 @@ public:
 		int x1 = b->rx / WIDE, y1 = b->ry / WIDE;
 		int x = x1 - de[status][0], y = y1 - de[status][1];
 		if (check(x, y, status) == SAME) {
-			blocks[x1][y1].point++, blocks[x][y].point = 0, blocks[x1][y1].st = 1, num--;
+			blocks[x][y].point = 0, blocks[x1][y1].st = 1, num--;
 			score += (1 << (b->point + 1));
 			block b1;
 			b1.set(b->rx, b->ry);
-			b1.point = b->point + 1;
+			b1.point = b->point;
 			mg.push_back(b1);
+			//std::cout << b1.point << std::endl;
 		}
 		else {
 			blocks[x1][y1].point = b->point, blocks[x][y].point = 0;
@@ -357,11 +356,11 @@ int logic() {
 					Blks.blocks[i][j].set(i * 100, j * 100);
 					if (Blks.blocks[i][j].point)
 						Blks.arr.push_back(Blks.blocks[i][j]);
-					std::cout << Blks.blocks[i][j].point << ' ';
+					//std::cout << Blks.blocks[i][j].point << ' ';
 				}
-				std::cout << std::endl;
+				//std::cout << std::endl;
 			}
-			std::cout << std::endl;
+			//std::cout << std::endl;
 			if (Blks.num == 16 && Blks.checkout()) return 2;
 		}
 		
@@ -378,6 +377,12 @@ void render() {
 
 void game_init() {
 	Blks.init(2);
+	for (int i = 1; i <= 13; i++)
+	{
+		std::string path = ".//images//";
+		path = path + char(i + '0') + ".png";
+		loadimage(&img[i], path.c_str());
+	}
 	setbkcolor(RGB(192, 192, 192));
 }
 
@@ -392,7 +397,7 @@ int test()
 				ret = Blks.check(i, j, k);
 				if (ret) {
 					res += ret;
-					std::cout << i << ' ' << j << ' ' << k << std::endl;
+					//std::cout << i << ' ' << j << ' ' << k << std::endl;
 				}
 			}
 		}
@@ -408,17 +413,17 @@ int main()
 #if 1
 
 	srand((unsigned int)time(NULL));
-	initgraph(400, 430);
+	initgraph(400, 430, SHOWCONSOLE);
 	BeginBatchDraw();
 	game_init();
-	int timer = 1;
-	//std::cin >> timer;
+	int timer = 70;
+	std::cin >> timer;
 	while (runtime)
 	{
 		int ret = logic();
 		render();
 		FlushBatchDraw();
-		Sleep(timer );
+		Sleep(timer * ret);
 		if (ret == 2) break;
 	}
 	while (Blks.mg_cnt < MG_TIME) {
@@ -440,18 +445,5 @@ int main()
 	EndBatchDraw();
 	closegraph();
 #endif	
-#if 0
-	initgraph(1000, 1000);
-	setbkcolor(RED);
-	cleardevice();
-	IMAGE img;
-	std::string a= ".//images//1.png";
-	loadimage(&img, a.c_str(), 100, 100);
-
-	putimage(100, 100, &img);
-	transparentimage(NULL, 100, 0, &img);
-
-	_getch();
-#endif
 	return 0;
 }
