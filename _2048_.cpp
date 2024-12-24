@@ -413,11 +413,11 @@ int main()
 #if 1
 
 	srand((unsigned int)time(NULL));
-	initgraph(400, 430, SHOWCONSOLE);
+	initgraph(400, 430);
 	BeginBatchDraw();
 	game_init();
-	int timer = 70;
-	std::cin >> timer;
+	int timer = 12;
+	//std::cin >> timer;
 	while (runtime)
 	{
 		int ret = logic();
