@@ -8,7 +8,7 @@
 #pragma comment( lib, "MSIMG32.LIB")
 
 #define WIDE  100
-#define PACE 10
+#define PACE 20
 #define MG_TIME 5
 #define TRANSRGB 0xffc4c4
 bool runtime = 1;
@@ -380,7 +380,7 @@ void game_init() {
 	for (int i = 1; i <= 13; i++)
 	{
 		std::string path = ".//images//";
-		path = path + char(i + '0') + ".png";
+		path = path + Blks.trans(i) + ".png";
 		loadimage(&img[i], path.c_str());
 	}
 	setbkcolor(RGB(192, 192, 192));
@@ -416,7 +416,7 @@ int main()
 	initgraph(400, 430);
 	BeginBatchDraw();
 	game_init();
-	int timer = 12;
+	int timer = 1;
 	//std::cin >> timer;
 	while (runtime)
 	{
