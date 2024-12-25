@@ -37,7 +37,7 @@ int block_color[16][3] = {
 	50, 50, 100,
 };
 wchar_t strnum[16][5] = {L"0", L"2", L"4", L"8", L"16" , L"32",L"64" , L"128" , L"256", L"512", L"1024", L"2048", L"4096", L"8192", L"14", L"15"};
-IMAGE img[14];
+IMAGE img[14], bkimg;
 int de[5][2] = {0, 0, -1, 0, 0, -1, 0, 1, 1, 0 };
 
 void transparentimage(IMAGE* dstimg, int x, int y, IMAGE* srcimg) //ÐÂ°æpng
@@ -129,6 +129,7 @@ public:
 	}
 	std::string trans(int n) {
 		int len = 0;
+		if (n == 0) return "0";
 		std::string s;
 		while (n) {
 			s = char(n % 10 + '0') + s;
@@ -138,6 +139,8 @@ public:
 	}
 	void render()
 	{
+		putimage(0, 0, &bkimg);
+		line(0, 400, 400, 400);
 		for (auto it : arr) {
 			if(it.point)
 			transparentimage(NULL, it.rx, it.ry, &img[it.point]);
@@ -148,6 +151,7 @@ public:
 			//std::cout << path << std::endl;
 			IMAGE img1;
 			loadimage(&img1, path.c_str(), (mg_cnt + 1) * WIDE / 5, (mg_cnt + 1) * WIDE / 5);
+			//std::cout << "MG <" << mg_cnt << std::endl;
 			transparentimage(NULL, it.rx + (5 - mg_cnt - 1) * WIDE / 10, it.ry + (5 - mg_cnt - 1) * WIDE / 10, &img1);
 			//std::cout <<"mg "<< mg_cnt * WIDE / 5 <<"  " << it.rx + (5 - mg_cnt) * WIDE / 10 << "   "<< it.ry + (5 - mg_cnt) * WIDE / 10 << std::endl;
 		}
@@ -362,6 +366,7 @@ int logic() {
 			}
 			//std::cout << std::endl;
 			if (Blks.num == 16 && Blks.checkout()) return 2;
+			std::cout << std::endl;
 		}
 		
 	}
@@ -377,6 +382,9 @@ void render() {
 
 void game_init() {
 	Blks.init(2);
+	setlinecolor(BLACK);
+	setlinestyle(PS_SOLID, 3);
+	loadimage(&bkimg, ".//images//bk.png");
 	for (int i = 1; i <= 13; i++)
 	{
 		std::string path = ".//images//";
